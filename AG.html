@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Optimisation TSP - Algorithme Génétique (Sélection par Rang)</title>
+<style>
+  :root {
+    --primary: #27ae60;
+    --secondary: #2ecc71;
+    --accent: #e74c3c;
+    --success: #27ae60;
+    --warning: #f39c12;
+    --population: #3498db;
+    --elite: #e67e22;
+    --background: #f5f7fa;
+    --panel: #ffffff;
+    --text: #2c3e50;
+    --border: #dce1e8;
+  }
+  
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--background);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  
+  .header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: var(--panel);
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border);
+  }
+  
+  .header h1 {
+    color: var(--primary);
+    font-size: 2.2rem;
+    margin-bottom: 10px;
+  }
+  
+  .container {
+    display: flex;
+    gap: 25px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+  
+  .canvas-panel {
+    flex: 2;
+    background: var(--panel);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .canvas-panel h2 {
+    margin-bottom: 15px;
+    color: var(--primary);
+    font-size: 1.5rem;
+  }
+  
+  canvas {
+    width: 100%;
+    flex: 1;
+    display: block;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border);
+  }
+  
+  .control-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    min-width: 350px;
+  }
+  
+  .panel {
+    background: var(--panel);
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border);
+  }
+  
+  .panel h3 {
+    margin-bottom: 15px;
+    color: var(--primary);
+    font-size: 1.3rem;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .solution-display {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 10px;
+    font-family: monospace;
+    font-size: 1.1rem;
+    border: 1px solid var(--border);
+  }
+  
+  .distance {
+    font-weight: bold;
+    color: var(--success);
+    font-size: 1.2rem;
+    margin-top: 10px;
+    text-align: center;
+    padding: 8px;
+    background: #f0f9f4;
+    border-radius: 6px;
+  }
+  
+  .input-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .input-group label {
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  
+  input[type="number"] {
+    width: 80px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--text);
+    text-align: center;
+    font-size: 1rem;
+  }
+  
+  .btn {
+    padding: 14px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  }
+  
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .btn-start {
+    background: var(--success);
+    color: white;
+  }
+  
+  .btn-start:hover {
+    background: #219653;
+  }
+  
+  .btn-pause {
+    background: var(--warning);
+    color: white;
+  }
+  
+  .btn-pause:hover {
+    background: #e67e22;
+  }
+  
+  .btn-reset {
+    background: var(--accent);
+    color: white;
+  }
+  
+  .btn-reset:hover {
+    background: #c0392b;
+  }
+  
+  .btn-group {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+  }
+  
+  .btn-group .btn {
+    flex: 1;
+  }
+  
+  #populationInfo {
+    max-height: 150px;
+    overflow-y: auto;
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+    border: 1px solid var(--border);
+  }
+  
+  .population-item {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: #e8f4fd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    border-left: 4px solid var(--population);
+    font-family: monospace;
+    transition: all 0.3s ease;
+  }
+  
+  .population-item.elite {
+    background: #fff9e6;
+    border-left-color: var(--elite);
+  }
+  
+  .population-item.improved {
+    background: #f0f9f4;
+    border-left-color: var(--success);
+  }
+  
+  .iteration-info {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+  }
+  
+  .progress-container {
+    margin-top: 15px;
+    height: 10px;
+    background: #e9ecef;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--population), var(--elite));
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 15px;
+    font-size: 0.9rem;
+    flex-wrap: wrap;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .legend-color {
+    width: 15px;
+    height: 15px;
+    border-radius: 3px;
+  }
+  
+  .current-legend {
+    background: var(--population);
+  }
+  
+  .best-legend {
+    background: var(--success);
+  }
+  
+  .min-distance {
+    text-align: center;
+    margin-top: 15px;
+    padding: 10px;
+    background: #fff9e6;
+    border-radius: 8px;
+    font-weight: bold;
+    color: var(--warning);
+    border: 1px solid #ffeaa7;
+  }
+  
+  .diversity-gauge {
+    height: 20px;
+    background: linear-gradient(90deg, #e74c3c, #f39c12, #3498db);
+    border-radius: 10px;
+    margin: 10px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .diversity-indicator {
+    position: absolute;
+    top: 0;
+    width: 3px;
+    height: 100%;
+    background: #2c3e50;
+    transform: translateX(-50%);
+  }
+  
+  .diversity-rate {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text);
+    margin-top: 5px;
+  }
+  
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  
+  .stat-item {
+    background: #f8f9fa;
+    padding: 8px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 0.9rem;
+  }
+  
+  .stat-value {
+    font-weight: bold;
+    color: var(--primary);
+  }
+  
+  /* Responsive */
+  @media (max-width: 1100px) {
+    .container {
+      flex-direction: column;
+    }
+    
+    .canvas-panel {
+      min-height: 500px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Optimisation TSP - Algorithme Génétique (Sélection par Rang)</h1>
+  <p>Algorithme Génétique avec sélection par rang et croisement OX pour trouver le chemin optimal</p>
+</div>
+
+<div class="container">
+  <div class="canvas-panel">
+    <h2>Visualisation du Parcours</h2>
+    <canvas id="tspCanvas"></canvas>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color current-legend"></div>
+        <span>Meilleur de la Génération</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color best-legend"></div>
+        <span>Meilleure Solution Globale</span>
+      </div>
+    </div>
+    <div class="min-distance" id="minDistanceDisplay" style="display: none;">
+      Distance minimale trouvée: <span id="minDistanceValue">0</span>
+    </div>
+  </div>
+  
+  <div class="control-panel">
+    <div class="panel">
+      <h3>Paramètres de l'Algorithme Génétique</h3>
+      <div class="input-group">
+        <label for="cityCount">Nombre de villes:</label>
+        <input type="number" id="cityCount" value="15" min="5" max="50">
+      </div>
+      <div class="input-group">
+        <label for="populationSize">Taille population:</label>
+        <input type="number" id="populationSize" value="50" min="20" max="200">
+      </div>
+      <div class="input-group">
+        <label for="maxGenerations">Générations maximum:</label>
+        <input type="number" id="maxGenerations" value="1000" min="100" max="10000">
+      </div>
+      <div class="input-group">
+        <label for="mutationRate">Taux de mutation:</label>
+        <input type="number" id="mutationRate" value="0.15" min="0.01" max="0.5" step="0.01">
+      </div>
+      <div class="input-group">
+        <label for="selectionRate">Taux de sélection:</label>
+        <input type="number" id="selectionRate" value="0.6" min="0.3" max="0.9" step="0.05">
+      </div>
+      <div class="input-group">
+        <label for="eliteSize">Taille élite:</label>
+        <input type="number" id="eliteSize" value="2" min="1" max="10">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Meilleur de la Génération</h3>
+      <div class="solution-display" id="currentSol">[ ]</div>
+      <div class="distance">Distance: <span id="currentDist">0</span></div>
+    </div>
+
+    <div class="panel">
+      <h3>Meilleure Solution Globale</h3>
+      <div class="solution-display" id="bestSol">[ ]</div>
+      <div class="distance">Distance: <span id="bestDist">0</span></div>
+    </div>
+
+    <div class="panel">
+      <h3>État de l'Algorithme Génétique</h3>
+      <div class="diversity-gauge">
+        <div class="diversity-indicator" id="diversityIndicator" style="left: 50%;"></div>
+      </div>
+      <div class="diversity-rate">
+        Diversité de la population: <span id="diversityRate">0%</span>
+      </div>
+      <div class="stats">
+        <div class="stat-item">
+          Génération: <span class="stat-value" id="statGeneration">0</span>/1000
+        </div>
+        <div class="stat-item">
+          Croisements: <span class="stat-value" id="statCrossovers">0</span>
+        </div>
+        <div class="stat-item">
+          Mutations: <span class="stat-value" id="statMutations">0</span>
+        </div>
+        <div class="stat-item">
+          Améliorations: <span class="stat-value" id="statImprovements">0</span>
+        </div>
+      </div>
+      <div id="populationInfo">
+        <div class="population-item">Prêt à démarrer - Algorithme Génétique</div>
+      </div>
+      <div class="iteration-info">
+        <span>Génération: <span id="currentGeneration">0</span>/<span id="maxGenerationDisplay">1000</span></span>
+        <span>Diversité: <span id="currentDiversity">0</span>%</span>
+      </div>
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-start" id="start">
+        Démarrer l'Évolution
+      </button>
+      <button class="btn btn-pause" id="pause" style="display:none;">
+        Pause
+      </button>
+      <button class="btn btn-reset" id="reset">
+        Réinitialiser
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+let canvas = document.getElementById('tspCanvas');
+let ctx = canvas.getContext('2d');
+
+// Variables de l'algorithme génétique
+let cities = [];
+let population = [];
+let currentBestSolution = [];
+let bestSolution = [];
+let currentBestDistance = 0;
+let bestDistance = Infinity;
+
+// Paramètres de l'algorithme génétique
+let populationSize = 50;
+let maxGenerations = 1000;
+let mutationRate = 0.15;
+let selectionRate = 0.6;
+let eliteSize = 2;
+
+// État de l'exécution
+let currentGeneration = 0;
+let isRunning = false;
+let animationId;
+
+// Statistiques
+let crossovers = 0;
+let mutations = 0;
+let improvements = 0;
+let populationDiversity = 0;
+
+// Initialisation
+function initialize() {
+  const cityCount = parseInt(document.getElementById('cityCount').value);
+  populationSize = parseInt(document.getElementById('populationSize').value);
+  maxGenerations = parseInt(document.getElementById('maxGenerations').value);
+  mutationRate = parseFloat(document.getElementById('mutationRate').value);
+  selectionRate = parseFloat(document.getElementById('selectionRate').value);
+  eliteSize = parseInt(document.getElementById('eliteSize').value);
+  
+  cities = generateRandomCities(cityCount);
+  
+  // Générer la population initiale
+  population = generateInitialPopulation(populationSize, cityCount);
+  
+  // Évaluer la population initiale
+  const fitness = evaluatePopulation(population);
+  const bestIdx = getBestSolutionIndex(fitness);
+  
+  currentBestSolution = [...population[bestIdx]];
+  currentBestDistance = calculateTotalDistance(currentBestSolution);
+  
+  bestSolution = [...currentBestSolution];
+  bestDistance = currentBestDistance;
+  
+  // Réinitialiser les statistiques
+  currentGeneration = 0;
+  crossovers = 0;
+  mutations = 0;
+  improvements = 0;
+  populationDiversity = calculateDiversity(population);
+  
+  updateStats();
+  updatePopulationInfo();
+  drawCities();
+  
+  document.getElementById('minDistanceDisplay').style.display = 'none';
+  document.getElementById('progressBar').style.width = '0%';
+}
+
+function generateRandomCities(count) {
+  const cities = [];
+  const padding = 50;
+  
+  for (let i = 0; i < count; i++) {
+    cities.push({
+      x: padding + Math.random() * (canvas.width - 2 * padding),
+      y: padding + Math.random() * (canvas.height - 2 * padding),
+      id: i
+    });
+  }
+  return cities;
+}
+
+function generateInitialPopulation(size, cityCount) {
+  const population = [];
+  for (let i = 0; i < size; i++) {
+    const individual = Array.from({length: cityCount}, (_, i) => i);
+    population.push(shuffleArray([...individual]));
+  }
+  return population;
+}
+
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+function resizeCanvas() {
+  canvas.width = canvas.parentElement.clientWidth;
+  canvas.height = canvas.parentElement.clientHeight - 100;
+  if (cities.length > 0) {
+    drawCities();
+  }
+}
+
+function calculateDistance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function calculateTotalDistance(solution) {
+  let total = 0;
+  for (let i = 0; i < solution.length - 1; i++) {
+    total += calculateDistance(cities[solution[i]], cities[solution[i + 1]]);
+  }
+  total += calculateDistance(cities[solution[solution.length - 1]], cities[solution[0]]);
+  return total;
+}
+
+function evaluatePopulation(pop) {
+  return pop.map(individual => {
+    const distance = calculateTotalDistance(individual);
+    return 1 / distance; // Fitness = 1/distance
+  });
+}
+
+function getBestSolutionIndex(fitness) {
+  let bestIndex = 0;
+  let bestFitness = fitness[0];
+  
+  for (let i = 1; i < fitness.length; i++) {
+    if (fitness[i] > bestFitness) {
+      bestFitness = fitness[i];
+      bestIndex = i;
+    }
+  }
+  return bestIndex;
+}
+
+function selectionByRank(population, fitness) {
+  // Trier par fitness (décroissant)
+  const sorted = population.map((ind, idx) => ({ individual: ind, fitness: fitness[idx] }))
+    .sort((a, b) => b.fitness - a.fitness);
+  
+  const nSelection = Math.floor(population.length * selectionRate);
+  const parents = [];
+  
+  // Attribution des probabilités basées sur le rang
+  const ranks = Array.from({length: sorted.length}, (_, i) => i + 1);
+  const probabilities = ranks.map(rank => 1 / rank);
+  const totalProb = probabilities.reduce((sum, prob) => sum + prob, 0);
+  const normalizedProb = probabilities.map(prob => prob / totalProb);
+  
+  // Sélection des parents
+  for (let i = 0; i < nSelection; i++) {
+    const selectedIndex = weightedRandomChoice(normalizedProb);
+    parents.push([...sorted[selectedIndex].individual]);
+  }
+  
+  return parents;
+}
+
+function weightedRandomChoice(probabilities) {
+  const rand = Math.random();
+  let cumulative = 0;
+  
+  for (let i = 0; i < probabilities.length; i++) {
+    cumulative += probabilities[i];
+    if (rand <= cumulative) {
+      return i;
+    }
+  }
+  return probabilities.length - 1;
+}
+
+function orderCrossover(parent1, parent2) {
+  const size = parent1.length;
+  const child = new Array(size).fill(-1);
+  
+  // Choisir deux points de coupure
+  const [point1, point2] = [Math.floor(Math.random() * size), Math.floor(Math.random() * size)]
+    .sort((a, b) => a - b);
+  
+  // Copier le segment du parent1
+  for (let i = point1; i <= point2; i++) {
+    child[i] = parent1[i];
+  }
+  
+  // Remplir le reste avec l'ordre du parent2
+  let position = (point2 + 1) % size;
+  for (let i = 0; i < size; i++) {
+    const city = parent2[(point2 + 1 + i) % size];
+    if (!child.includes(city)) {
+      child[position] = city;
+      position = (position + 1) % size;
+    }
+  }
+  
+  return child;
+}
+
+function swapMutation(individual) {
+  if (Math.random() < mutationRate) {
+    const i = Math.floor(Math.random() * individual.length);
+    let j = Math.floor(Math.random() * individual.length);
+    while (i === j) j = Math.floor(Math.random() * individual.length);
+    
+    [individual[i], individual[j]] = [individual[j], individual[i]];
+    mutations++;
+  }
+  return individual;
+}
+
+function calculateDiversity(pop) {
+  const uniqueSolutions = new Set(pop.map(ind => ind.join(',')));
+  return (uniqueSolutions.size / pop.length) * 100;
+}
+
+function drawCities() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Dessiner la meilleure solution globale en vert
+  if (bestSolution.length > 0) {
+    ctx.beginPath();
+    ctx.moveTo(cities[bestSolution[0]].x, cities[bestSolution[0]].y);
+    for (let i = 1; i < bestSolution.length; i++) {
+      ctx.lineTo(cities[bestSolution[i]].x, cities[bestSolution[i]].y);
+    }
+    ctx.lineTo(cities[bestSolution[0]].x, cities[bestSolution[0]].y);
+    ctx.strokeStyle = '#27ae60';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([5, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  
+  // Dessiner le meilleur de la génération actuelle en bleu
+  if (currentBestSolution.length > 0) {
+    ctx.beginPath();
+    ctx.moveTo(cities[currentBestSolution[0]].x, cities[currentBestSolution[0]].y);
+    for (let i = 1; i < currentBestSolution.length; i++) {
+      ctx.lineTo(cities[currentBestSolution[i]].x, cities[currentBestSolution[i]].y);
+    }
+    ctx.lineTo(cities[currentBestSolution[0]].x, cities[currentBestSolution[0]].y);
+    ctx.strokeStyle = '#3498db';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+  
+  // Dessiner les villes
+  for (let c of cities) {
+    // Cercle extérieur
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#e74c3c';
+    ctx.fill();
+    
+    // Cercle intérieur
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    
+    // Numéro de la ville
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(c.id, c.x, c.y);
+  }
+}
+
+function runGeneticAlgorithm() {
+  if (!isRunning || currentGeneration >= maxGenerations) {
+    finishAlgorithm();
+    return;
+  }
+  
+  function runGeneration() {
+    if (currentGeneration >= maxGenerations || !isRunning) {
+      finishAlgorithm();
+      return;
+    }
+    
+    currentGeneration++;
+    
+    // Évaluer la population actuelle
+    const fitness = evaluatePopulation(population);
+    const bestIdx = getBestSolutionIndex(fitness);
+    
+    // Mettre à jour le meilleur de la génération
+    currentBestSolution = [...population[bestIdx]];
+    currentBestDistance = calculateTotalDistance(currentBestSolution);
+    
+    // Mettre à jour la meilleure solution globale
+    if (currentBestDistance < bestDistance) {
+      bestSolution = [...currentBestSolution];
+      bestDistance = currentBestDistance;
+      improvements++;
+    }
+    
+    // SÉLECTION PAR RANG
+    const parents = selectionByRank(population, fitness);
+    
+    // CRÉATION DE LA NOUVELLE GÉNÉRATION
+    const newPopulation = [];
+    
+    // ÉLITISME : conserver les meilleurs individus
+    const eliteIndices = [];
+    const fitnessWithIndices = fitness.map((f, idx) => ({fitness: f, index: idx}))
+      .sort((a, b) => b.fitness - a.fitness);
+    
+    for (let i = 0; i < eliteSize; i++) {
+      eliteIndices.push(fitnessWithIndices[i].index);
+    }
+    
+    for (let i = 0; i < eliteSize && i < eliteIndices.length; i++) {
+      newPopulation.push([...population[eliteIndices[i]]]);
+    }
+    
+    // REPRODUCTION
+    while (newPopulation.length < populationSize) {
+      const parent1 = parents[Math.floor(Math.random() * parents.length)];
+      const parent2 = parents[Math.floor(Math.random() * parents.length)];
+      
+      const child = orderCrossover(parent1, parent2);
+      const mutatedChild = swapMutation([...child]);
+      
+      newPopulation.push(mutatedChild);
+      crossovers++;
+    }
+    
+    population = newPopulation;
+    populationDiversity = calculateDiversity(population);
+    
+    // Mettre à jour l'interface
+    updateStats();
+    updatePopulationInfo();
+    drawCities();
+    
+    // Mettre à jour l'affichage en temps réel
+    document.getElementById('currentGeneration').textContent = currentGeneration;
+    document.getElementById('currentDiversity').textContent = Math.round(populationDiversity);
+    document.getElementById('diversityRate').textContent = Math.round(populationDiversity) + '%';
+    
+    // Mettre à jour la jauge de diversité
+    document.getElementById('diversityIndicator').style.left = populationDiversity + '%';
+    
+    // Mettre à jour la barre de progression
+    const generationProgress = (currentGeneration / maxGenerations) * 100;
+    document.getElementById('progressBar').style.width = `${generationProgress}%`;
+    
+    // Continuer l'exécution
+    if (isRunning && currentGeneration < maxGenerations) {
+      setTimeout(() => {
+        animationId = requestAnimationFrame(runGeneration);
+      }, 50); // Délai pour mieux voir l'évolution
+    } else {
+      finishAlgorithm();
+    }
+  }
+  
+  runGeneration();
+}
+
+function startAlgorithm() {
+  if (isRunning) return;
+  
+  isRunning = true;
+  document.getElementById('start').style.display = 'none';
+  document.getElementById('pause').style.display = 'flex';
+  document.getElementById('minDistanceDisplay').style.display = 'none';
+  
+  runGeneticAlgorithm();
+}
+
+function pauseAlgorithm() {
+  isRunning = false;
+  document.getElementById('start').style.display = 'flex';
+  document.getElementById('pause').style.display = 'none';
+  cancelAnimationFrame(animationId);
+}
+
+function finishAlgorithm() {
+  isRunning = false;
+  document.getElementById('start').style.display = 'flex';
+  document.getElementById('pause').style.display = 'none';
+  document.getElementById('minDistanceDisplay').style.display = 'block';
+  document.getElementById('minDistanceValue').textContent = bestDistance.toFixed(2);
+  
+  // Affichage final
+  updateStats();
+  updatePopulationInfo();
+  drawCities();
+  
+  // Message de fin
+  const popInfo = document.getElementById('populationInfo');
+  const finalMessage = document.createElement('div');
+  finalMessage.className = 'population-item elite';
+  finalMessage.textContent = `✓ Évolution terminée! ${currentGeneration} générations. Distance minimale: ${bestDistance.toFixed(2)}`;
+  popInfo.appendChild(finalMessage);
+  popInfo.scrollTop = popInfo.scrollHeight;
+}
+
+function updateStats() {
+  document.getElementById('currentSol').textContent = '[' + currentBestSolution.join(', ') + ']';
+  document.getElementById('currentDist').textContent = currentBestDistance.toFixed(2);
+  document.getElementById('bestSol').textContent = '[' + bestSolution.join(', ') + ']';
+  document.getElementById('bestDist').textContent = bestDistance.toFixed(2);
+  
+  document.getElementById('statGeneration').textContent = currentGeneration;
+  document.getElementById('statCrossovers').textContent = crossovers;
+  document.getElementById('statMutations').textContent = mutations;
+  document.getElementById('statImprovements').textContent = improvements;
+  document.getElementById('maxGenerationDisplay').textContent = maxGenerations;
+}
+
+function updatePopulationInfo() {
+  const el = document.getElementById('populationInfo');
+  
+  // Garder seulement les 5 derniers messages
+  if (el.children.length > 5) {
+    el.removeChild(el.children[0]);
+  }
+  
+  // Ajouter le nouvel état toutes les 50 générations
+  if (currentGeneration % 50 === 0 || currentGeneration === maxGenerations) {
+    const newItem = document.createElement('div');
+    newItem.className = 'population-item';
+    
+    if (currentBestDistance === bestDistance) {
+      newItem.classList.add('improved');
+    }
+    
+    const avgFitness = evaluatePopulation(population).reduce((sum, f) => sum + f, 0) / population.length;
+    const avgDistance = 1 / avgFitness;
+    
+    newItem.textContent = `Gén ${currentGeneration}: Meilleure=${currentBestDistance.toFixed(1)} | Globale=${bestDistance.toFixed(1)} | Diversité=${Math.round(populationDiversity)}%`;
+    
+    el.appendChild(newItem);
+    el.scrollTop = el.scrollHeight;
+  }
+}
+
+// Événements
+document.getElementById('start').addEventListener('click', startAlgorithm);
+document.getElementById('pause').addEventListener('click', pauseAlgorithm);
+document.getElementById('reset').addEventListener('click', function() {
+  pauseAlgorithm();
+  initialize();
+});
+
+// Mettre à jour les paramètres en temps réel
+document.getElementById('cityCount').addEventListener('change', function() {
+  if (!isRunning) initialize();
+});
+
+document.getElementById('populationSize').addEventListener('change', function() {
+  populationSize = parseInt(this.value);
+  if (!isRunning) initialize();
+});
+
+document.getElementById('maxGenerations').addEventListener('change', function() {
+  maxGenerations = parseInt(this.value);
+});
+
+document.getElementById('mutationRate').addEventListener('change', function() {
+  mutationRate = parseFloat(this.value);
+});
+
+document.getElementById('selectionRate').addEventListener('change', function() {
+  selectionRate = parseFloat(this.value);
+});
+
+document.getElementById('eliteSize').addEventListener('change', function() {
+  eliteSize = parseInt(this.value);
+});
+
+// Initialisation
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+initialize();
+</script>
+
+</body>
+</html>
